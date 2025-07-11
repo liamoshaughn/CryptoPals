@@ -1,9 +1,8 @@
-# AES-128 CBC Mode Encryption.
-
-
-
 from Crypto.Util.Padding import pad
+from Crypto.Cipher.AES import block_size
 import base64
+import secrets
+
 
 s_box = [
     [0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76],
@@ -42,6 +41,7 @@ def gf_mult(a, b):
 #Turns a hex string of data into column order state matrix
 def hex_to_state(hex_str):
     #Converts a 32-character hex string to a 4x4 AES state matrix (hex strings).
+ 
     assert len(hex_str) == 32, "Hex string must be 32 chars (16 bytes)"
     return [
         [hex_str[8*j + 2*i : 8*j + 2*i + 2] for j in range(4)
@@ -140,44 +140,41 @@ def expand_key(key):
 def xor_strings(current, previous):
     return bytes(a ^ b for a, b in zip(bytes.fromhex(current), bytes.fromhex(previous))).hex()
     
-            
-def main():
 
-    file = input('Enter file to encrypt\n')
+def encryption_oracle(user_input):
+    key = secrets.token_hex(8).encode('utf-8')
+    mode = secrets.randbelow(2)
+    # print('CBC' if mode else 'ecb')    
 
-    key = input('Enter key: ').encode('utf-8')
-
-    # Ensure key is 16 bytes
-    if len(key) < 16:
-        key = key.ljust(16, b'\0')
-    elif len(key) > 16:
-        key = key[:16]
-        
-
-    decrypted = ''
-
-    with open(file) as my_file:
-        decrypted += my_file.read()
-    decrypted = decrypted.encode('utf-8')
-    if len(decrypted)%16 > 0:
-        decrypted = pad(decrypted, 16-len(decrypted)%16)
+    #Challenge Asks to bad so PAD I SHALL
+    before = secrets.randbelow(6) + 5
+    after = secrets.randbelow(6) + 5
+    
+    user_input = pad(b'', before) + user_input + pad(b'', after)
+    
+    #Ensure Correct Block Size
+    if len(user_input)%16 > 0:
+        user_input = pad(user_input, len(user_input)+(16 - len(user_input)%16))
     else:
-        decrypted = pad(decrypted, len(decrypted)+16)
+        user_input = pad(user_input, len(user_input)+16)
     
-    chunks = [decrypted[i:i + 16] for i in range(0, len(decrypted), 16)]
-    
+    chunks = [user_input[i:i + 16] for i in range(0, len(user_input), 16)]
     
     keys = expand_key(key)
-
     encrypted = ''
     
     #I'm just gonna call this iv but will be used to store the previous cipher block
-    iv = b'1234567812345678'.hex()
+    iv = secrets.token_hex(16)
     
     for chunk in chunks:
+        
+        state_matrix = []
         #For CBC we have to XOR from previous Cipher
-        chunk = xor_strings(chunk.hex(), iv)
-        state_matrix = hex_to_state(chunk)
+        if mode:
+            chunk = xor_strings(chunk.hex(), iv)
+            state_matrix = hex_to_state(chunk)
+        else:
+            state_matrix =  hex_to_state(chunk.hex())
 
         #Every round but round 0 
         state_matrix = add_round_key(keys[0], state_matrix)
@@ -196,7 +193,24 @@ def main():
         encrypted += iv
 
 
-    print(encrypted)
+    return encrypted
+    
+    
+
+def main():
+    #The difference between ECB AND CBC is that CBC provides diffusion between blocks of cipher text, ECB does not. #This means that to detect if our algo is using ECB or CBC we feed into our generator repeated text. 
+    #In CBC we should not see any repeated cipher but in ECB because it does not diffuse between chunks all repeated chunks will produce the same cipher text allowing us to tell which method was chosen.
+    repeated_text = b"BangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarangBangarang"
+    
+    #20 Bangarang's seemed to be enough to detect repeated blocks through 10-20 extra padding bytes but I doubled it just to be safe
+    
+    cipher = encryption_oracle(repeated_text)
+    
+    chunks = [cipher[i:i + block_size] for i in range(0, len(cipher), block_size)]
+    number_of_duplicates = len(chunks) - len(set(chunks))
+    
+    print(f"This round the text seemed to be encrypted by {'CBC' if number_of_duplicates == 0 else 'ECB'}")
+    
 
 if __name__ == "__main__":
     main()
