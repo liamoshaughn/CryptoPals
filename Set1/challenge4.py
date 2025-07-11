@@ -39,24 +39,28 @@ def break_single_byte_xor(ciphertext_hex):
     
     return best_key, best_plaintext, best_score
 
-#open file and put into array
-cipher_array = []
-with open('4.txt') as my_file:
-    for line in my_file:
-        cipher_array.append(line)
+def main():
+    #open file and put into array
+    cipher_array = []
+    with open('4.txt') as my_file:
+        for line in my_file:
+            cipher_array.append(line)
 
-# Break the cipher
+    # Break the cipher
 
-best_score = -1
-best_key = None
-best_plaintext = None
-for cipher in cipher_array:
-    key, plaintext, score = break_single_byte_xor(cipher)
-    if score > best_score:
-        best_score = score
-        best_key = key
-        best_plaintext = plaintext
+    best_score = -1
+    best_key = None
+    best_plaintext = None
+    for cipher in cipher_array:
+        key, plaintext, score = break_single_byte_xor(cipher)
+        if score > best_score:
+            best_score = score
+            best_key = key
+            best_plaintext = plaintext
+            
         
-    
-print(f"Key: {best_key} (ASCII: {chr(best_key)})")
-print(f"Plaintext: {best_plaintext.decode('ascii')}")
+    print(f"Key: {best_key} (ASCII: {chr(best_key)})")
+    print(f"Plaintext: {best_plaintext.decode('ascii')}")
+
+if __name__ == "__main__":
+    main()

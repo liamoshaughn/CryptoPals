@@ -1,3 +1,7 @@
+# AES-128 ECB Mode Decryption.
+# There is probably some unnecessary typing conversions in here but were used to help me debug with examples and have just stayed throughout
+
+
 from Crypto.Util.Padding import pad
 import base64
 
@@ -54,14 +58,14 @@ def gf_mult(a, b):
 
 #Turns a hex string of data into column order state matrix
 def hex_to_state(hex_str):
-    """Converts a 32-character hex string to a 4x4 AES state matrix (hex strings)."""
+    #Converts a 32-character hex string to a 4x4 AES state matrix (hex strings).
     assert len(hex_str) == 32, "Hex string must be 32 chars (16 bytes)"
     return [
         [hex_str[8*j + 2*i : 8*j + 2*i + 2] for j in range(4)
     ] for i in range(4)]
 
 def state_to_hex(state_matrix):
-    """Converts a 4x4 AES state matrix back to a 32-character hex string."""
+    #Converts a 4x4 AES state matrix back to a 32-character hex string.
     hex_str = ''
     # Reconstruct column by column
     for j in range(4):  # columns
@@ -79,7 +83,7 @@ def InverseShiftRows(state_matrix):
     
     return(state_matrix)
 
-def InverseMixColumns(state_matrix):
+def inverse_mix_columns(state_matrix):
     inv_const_matrix = [
     [0x0e, 0x0b, 0x0d, 0x09],
     [0x09, 0x0e, 0x0b, 0x0d],
@@ -98,7 +102,7 @@ def InverseMixColumns(state_matrix):
     
     return state_matrix
     
-def InverseSubBytes(state_matrix):
+def inverse_sub_bytes(state_matrix):
     for i in range(len(state_matrix)):
         for j in range(4):
             #split into nibbles so we can search s_box
@@ -108,7 +112,7 @@ def InverseSubBytes(state_matrix):
     
     return state_matrix
     
-def AddRoundKey(key, state_matrix):
+def add_round_key(key, state_matrix):
     #xor round key with state_matrix
     key_matrix = hex_to_state(key)
     
@@ -118,7 +122,7 @@ def AddRoundKey(key, state_matrix):
     
     return state_matrix
 
-def ExpandKey(key):
+def expand_key(key):
     
     keys = [0] * rounds
     round_constant = [0,0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80,0x1b,0x36] 
@@ -150,54 +154,57 @@ def ExpandKey(key):
         
     return keys
             
+def main():
+    #For challenge 7 text is 7.txt and key is "YELLOW SUBMARINE" without quotes
 
-#For challenge 7 text is 7.txt and key is "YELLOW SUBMARINE" without quotes
+    file = input('Enter file to decrypt\n')
 
-file = input('Enter file to decrypt\n')
+    key = input('Enter key: ').encode('utf-8')
 
-key = input('Enter key: ').encode('utf-8')
-
-# Ensure key is 16 bytes
-if len(key) < 16:
-    key = key.ljust(16, b'\0')
-elif len(key) > 16:
-    key = key[:16]
-    
-print(key)
-
-encrypted = ''
-
-with open(file) as my_file:
-    encrypted += my_file.read()
-    
-encrypted = base64.b64decode(encrypted)
-if len(encrypted)%16 > 0:
-    encrypted = pad(encrypted, len(encrypted)%16)
-
-
-chunks = [encrypted[i:i + 16] for i in range(0, len(encrypted), 16)]
-
-
-
-keys = ExpandKey(key)
-
-decrypted = ''
-for chunk in chunks:
-    state_matrix = hex_to_state(chunk.hex())
-
-    #Every round but round 0 
-    for round in range(rounds-1, 0, -1):
-        state_matrix = AddRoundKey(keys[round], state_matrix)
+    # Ensure key is 16 bytes
+    if len(key) < 16:
+        key = key.ljust(16, b'\0')
+    elif len(key) > 16:
+        key = key[:16]
         
-        if round != 10:
-            state_matrix =  InverseMixColumns(state_matrix) 
+    print(key)
+
+    encrypted = ''
+
+    with open(file) as my_file:
+        encrypted += my_file.read()
+        
+    encrypted = base64.b64decode(encrypted)
+    if len(encrypted)%16 > 0:
+        encrypted = pad(encrypted, len(encrypted)%16)
+
+
+    chunks = [encrypted[i:i + 16] for i in range(0, len(encrypted), 16)]
+
+
+
+    keys = expand_key(key)
+
+    decrypted = ''
+    for chunk in chunks:
+        state_matrix = hex_to_state(chunk.hex())
+
+        #Every round but round 0 
+        for round in range(rounds-1, 0, -1):
+            state_matrix = add_round_key(keys[round], state_matrix)
             
-        state_matrix =  InverseShiftRows(state_matrix)
-        state_matrix = InverseSubBytes(state_matrix)
+            if round != 10:
+                state_matrix =  inverse_mix_columns(state_matrix) 
+                
+            state_matrix =  InverseShiftRows(state_matrix)
+            state_matrix = inverse_sub_bytes(state_matrix)
 
-        
-    state_matrix = AddRoundKey(keys[0], state_matrix)
-    decrypted = decrypted + bytes.fromhex(state_to_hex(state_matrix)).decode('utf-8')
+            
+        state_matrix = add_round_key(keys[0], state_matrix)
+        decrypted = decrypted + bytes.fromhex(state_to_hex(state_matrix)).decode('utf-8')
 
 
-print(decrypted)
+    print(decrypted)
+
+if __name__ == "__main__":
+    main()

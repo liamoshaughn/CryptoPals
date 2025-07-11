@@ -61,50 +61,51 @@ def solve_rotating_xor_cipher(cipher_decoded, key):
             rotating_count = 0
     return decoded_message
 
+def main():
+    cipher = ''
 
-cipher = ''
+    with open('6.txt') as my_file:
+        cipher += my_file.read()
 
-with open('6.txt') as my_file:
-    cipher += my_file.read()
+    cipher = base64.b64decode(cipher)
 
-cipher = base64.b64decode(cipher)
+    key_size = 2
 
-key_size = 2
-
-distance_results = [99, 99]
-
-
-#Find the key size of a key by calculating the average distance over multiple key size blocks
-while key_size <= 40:
-    chunks = [cipher[i*key_size : (i+1)*key_size] for i in range(4)]
-    avg_dist = sum(
-        hamming_distance(chunks[i], chunks[j]) / key_size
-        for i, j in [(0,1), (0,2), (1,2), (0,3), (1,3), (2,3)]
-    ) / 6
-    distance_results.append(avg_dist)
-    key_size += 1
-
-#take the smallest key and break cipher into key-size chunks, transpose so we can solve each byte as a single byte XOR cipher
-smallest = distance_results.index(min(distance_results))
-
-chunks = [cipher[i:i+smallest] for i in range(0, len(cipher), smallest)]
-
-transposed_chunks = [bytearray() for _ in range(smallest)]
-
-for chunk in chunks:
-    for i in range(len(chunk)):
-        transposed_chunks[i].append(chunk[i])
-
-key_string = ""
-
-#break each transposed chunks key
-for chunk in transposed_chunks:
-    key, plaintext = break_single_byte_xor(chunk)
-
-    key_string += chr(key)
-
-#Now that we know the key we can solve the whole cipher
-print(solve_rotating_xor_cipher(cipher, key_string))
+    distance_results = [99, 99]
 
 
+    #Find the key size of a key by calculating the average distance over multiple key size blocks
+    while key_size <= 40:
+        chunks = [cipher[i*key_size : (i+1)*key_size] for i in range(4)]
+        avg_dist = sum(
+            hamming_distance(chunks[i], chunks[j]) / key_size
+            for i, j in [(0,1), (0,2), (1,2), (0,3), (1,3), (2,3)]
+        ) / 6
+        distance_results.append(avg_dist)
+        key_size += 1
+
+    #take the smallest key and break cipher into key-size chunks, transpose so we can solve each byte as a single byte XOR cipher
+    smallest = distance_results.index(min(distance_results))
+
+    chunks = [cipher[i:i+smallest] for i in range(0, len(cipher), smallest)]
+
+    transposed_chunks = [bytearray() for _ in range(smallest)]
+
+    for chunk in chunks:
+        for i in range(len(chunk)):
+            transposed_chunks[i].append(chunk[i])
+
+    key_string = ""
+
+    #break each transposed chunks key
+    for chunk in transposed_chunks:
+        key, plaintext = break_single_byte_xor(chunk)
+
+        key_string += chr(key)
+
+    #Now that we know the key we can solve the whole cipher
+    print(solve_rotating_xor_cipher(cipher, key_string))
+
+if __name__ == "__main__":
+    main()
 
