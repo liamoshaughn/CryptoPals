@@ -6,5 +6,8 @@ For this reason I have uploaded my answers. Don't know if they are all 100% corr
 
 Some of the challenges are easy with one or two line implementations while others can be gnarly and unexpected(looking at you set 1 challenge 7).
 
-# TODO
-Maybe at somepoint I'll take some of these challenges and expand them into their own repo's for cool little projects
+# Helpers
+Some of the challenges are used in later ones, I set them up in their own dedicated folder. 
+
+To use run:
+```pip install -e .```
