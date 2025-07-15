@@ -160,9 +160,9 @@ def main():
         decrypted += my_file.read()
     decrypted = decrypted.encode('utf-8')
     if len(decrypted)%16 > 0:
-        decrypted = pad(decrypted, 16-len(decrypted)%16)
+        decrypted = pad(decrypted, len(decrypted) + 16 - len(decrypted) % 16)
     else:
-        decrypted = pad(decrypted, len(decrypted)+16)
+        decrypted = pad(decrypted, len(decrypted) + 16)
     
     chunks = [decrypted[i:i + 16] for i in range(0, len(decrypted), 16)]
     
